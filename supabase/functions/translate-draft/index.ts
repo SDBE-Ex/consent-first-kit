@@ -18,10 +18,10 @@ type Draft = { engine: string; madeIn: string; text: string | null; error?: stri
 
 async function khayaTranslate(text: string, key: string): Promise<Draft> {
   try {
-    const r = await fetch(`${KHAYA_BASE}/v1/translate`, {
+    const r = await fetch(`${KHAYA_BASE}/v2/translate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Ocp-Apim-Subscription-Key': key },
-      body: JSON.stringify({ in: text, lang: 'en-yo' }),
+      body: JSON.stringify({ in: text, lang: 'eng-yor' }), // v2 requires ISO 639-3 codes
     })
     if (!r.ok) return { engine: 'khaya', madeIn: 'Ghana', text: null, error: `HTTP ${r.status}` }
     const out = await r.json()
@@ -32,17 +32,17 @@ async function khayaTranslate(text: string, key: string): Promise<Draft> {
 }
 
 async function khayaSpeech(text: string, key: string): Promise<Response> {
-  return fetch(`${KHAYA_BASE}/tts/v1/tts`, {
+  return fetch(`${KHAYA_BASE}/tts/v2/synthesize`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Ocp-Apim-Subscription-Key': key },
-    body: JSON.stringify({ text, language: 'yor' }),
+    body: JSON.stringify({ text, language: 'yor', format: 'mp3' }),
   })
 }
 
 /** Yoruba relies on tone marks; a draft with none is almost certainly wrong. */
 function hasToneMarks(s: string) {
   // After NFD, grave (0300), acute (0301) and dot-below (0323, as in ẹ ọ ṣ) become separate marks.
-  return /[̣̀́]/.test(s.normalize('NFD'))
+  return /[\u0300\u0301\u0323]/.test(s.normalize('NFD'))
 }
 
 Deno.serve(async (req) => {
@@ -64,10 +64,10 @@ Deno.serve(async (req) => {
   }
 
   if (body.mode === 'speech') {
-    // text here is the APPROVED Yoruba line; returns WAV audio for the consent script
+    // text here is the APPROVED Yoruba line; returns MP3 audio for the consent script
     const r = await khayaSpeech(text, key)
     if (!r.ok) return Response.json({ error: `speech HTTP ${r.status}` }, { status: 502, headers: cors })
-    return new Response(r.body, { headers: { ...cors, 'Content-Type': r.headers.get('content-type') ?? 'audio/wav' } })
+    return new Response(r.body, { headers: { ...cors, 'Content-Type': r.headers.get('content-type') ?? 'audio/mpeg' } })
   }
 
   const drafts: Draft[] = await Promise.all([
