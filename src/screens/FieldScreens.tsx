@@ -1,37 +1,49 @@
 // Journey B: health worker collects in the field (screens 4 to 9).
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { demoDataset } from '../lib/demoData'
+import { loadPublishedForms } from '../lib/forms'
 import { t } from '../lib/i18n'
 import { pendingCount, saveSubmission } from '../lib/localStore'
 import { syncNow } from '../lib/sync'
 import { newCheckCode, useVisit } from '../session'
-import type { ConsentChoices } from '../types'
+import { say, type ConsentChoices, type Dataset, type IdentityField } from '../types'
 
-// Screen 4: assigned forms + offline status
+// Screen 4: published forms (kept on the phone for offline use) + offline status
 export function FormsList() {
   const nav = useNavigate()
   const { update, reset } = useVisit()
   const [count, setCount] = useState(0)
+  const [forms, setForms] = useState<Dataset[]>([])
+  const [source, setSource] = useState('')
   useEffect(() => {
     pendingCount().then(setCount)
+    loadPublishedForms().then((r) => {
+      setForms(r.forms)
+      setSource(r.source === 'cache' ? 'saved copy' : r.source === 'demo' ? 'demo' : 'up to date')
+    })
   }, [])
   return (
     <main>
       <h1>Assigned forms</h1>
-      <p className="status">{navigator.onLine ? 'Online' : 'Offline'} · {count} {t('en', 'pending')}</p>
-      <button
-        className="card"
-        onClick={() => {
-          reset()
-          update({ dataset: demoDataset })
-          nav('/field/language')
-        }}
-      >
-        <strong>{demoDataset.title}</strong>
-        <span>Ends {demoDataset.endDate}</span>
-      </button>
+      <p className="status">
+        {navigator.onLine ? 'Online' : 'Offline'} · {count} {t('en', 'pending')} · forms {source}
+      </p>
+      {forms.map((f) => (
+        <button
+          key={f.id}
+          className="card"
+          onClick={() => {
+            reset()
+            update({ dataset: f })
+            nav('/field/language')
+          }}
+        >
+          <strong>{f.title}</strong>
+          <span>Ends {f.end_date}</span>
+        </button>
+      ))}
       <button className="link" onClick={() => nav('/field/sync')}>Sync and storage</button>
+      <button className="link" onClick={() => nav('/lead')}>Programme lead? Sign in</button>
     </main>
   )
 }
@@ -48,8 +60,11 @@ export function LanguageConsent() {
         <button className={visit.lang === 'en' ? 'on' : ''} onClick={() => update({ lang: 'en' })}>English</button>
       </div>
       <h2>{t(visit.lang, 'consentTitle')}</h2>
-      <p>{t(visit.lang, 'consentIntro')}</p>
-      {/* TODO: <audio src={`/audio/consent-${visit.lang}.mp3`} controls /> once recorded by a native speaker */}
+      {visit.dataset?.consent.map((c) => <p key={c.id}>{say(c, visit.lang)}</p>)}
+      {visit.lang === 'yo' && visit.dataset?.consent.some((c) => !c.yo_approved) && (
+        <p className="warn">Some lines have no approved Yoruba yet and are shown in English.</p>
+      )}
+      {/* Audio slot: approved Yoruba lines can be voiced via translate-draft (mode: speech) in the build phase */}
       <button className="primary" onClick={() => nav('/field/choices')}>{t(visit.lang, 'continue')}</button>
     </main>
   )
@@ -94,16 +109,17 @@ export function Declined() {
   )
 }
 
-// Screen 7: questions, saved under a code (identity never mixed in)
+// Screen 7: questions, saved under a code. Identity (only fields the form needs) is saved apart.
 export function Questions() {
   const nav = useNavigate()
   const { visit, update } = useVisit()
+  const [identity, setIdentity] = useState<Partial<Record<IdentityField, string>>>({})
   const ds = visit.dataset
   if (!ds) return <main><p>No form selected.</p></main>
   const setAns = (id: string, v: string) => update({ answers: { ...visit.answers, [id]: v } })
-  const label = (r: Record<'en' | 'yo', string>) => r[visit.lang] || r.en
   async function save() {
     const checkCode = newCheckCode()
+    const id = Object.fromEntries(Object.entries(identity).filter(([, v]) => v?.trim()))
     await saveSubmission({
       localId: crypto.randomUUID(),
       datasetId: ds!.id,
@@ -111,6 +127,7 @@ export function Questions() {
       lang: visit.lang,
       consent: visit.consent,
       answers: visit.answers,
+      identity: Object.keys(id).length ? id : undefined,
       createdAt: new Date().toISOString(),
     })
     update({ checkCode })
@@ -121,20 +138,32 @@ export function Questions() {
       <h1>{ds.title}</h1>
       {ds.questions.map((q) => (
         <label key={q.id} className="q">
-          <span>{label(q.label)}</span>
+          <span>{say(q, visit.lang)}</span>
           {q.kind === 'text' ? (
             <textarea value={visit.answers[q.id] ?? ''} onChange={(e) => setAns(q.id, e.target.value)} />
           ) : (
             <div className="col">
               {q.options?.map((o) => (
                 <button key={o.en} className={visit.answers[q.id] === o.en ? 'on' : ''} onClick={() => setAns(q.id, o.en)}>
-                  {label(o)}
+                  {say(o, visit.lang)}
                 </button>
               ))}
             </div>
           )}
         </label>
       ))}
+      {ds.identity_fields.length > 0 && (
+        <>
+          <h2>Contact details</h2>
+          <p className="status">Only because this form needs them. Stored separately from the answers above.</p>
+          {ds.identity_fields.map((f) => (
+            <label key={f} className="q">
+              <span>{f}</span>
+              <input value={identity[f] ?? ''} onChange={(e) => setIdentity({ ...identity, [f]: e.target.value })} />
+            </label>
+          ))}
+        </>
+      )}
       <button className="primary" onClick={save}>Save</button>
     </main>
   )
