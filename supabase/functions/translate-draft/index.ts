@@ -45,9 +45,33 @@ function hasToneMarks(s: string) {
   return /[\u0300\u0301\u0323]/.test(s.normalize('NFD'))
 }
 
+/** Only signed-in programme leads or reviewers may use translation (it spends the free quota). */
+async function callerRole(req: Request): Promise<string | null> {
+  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+  if (!token) return null
+  const url = Deno.env.get('SUPABASE_URL')!
+  let apikey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+  try {
+    const keys = JSON.parse(Deno.env.get('SUPABASE_PUBLISHABLE_KEYS') ?? '{}')
+    apikey = (Object.values(keys)[0] as string) || apikey
+  } catch { /* fall back to anon key */ }
+  const r = await fetch(`${url}/rest/v1/rpc/my_role`, {
+    method: 'POST',
+    headers: { apikey, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: '{}',
+  })
+  if (!r.ok) return null
+  return (await r.json()) as string | null
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return new Response('POST only', { status: 405, headers: cors })
+
+  const role = await callerRole(req)
+  if (role !== 'lead' && role !== 'reviewer') {
+    return Response.json({ error: 'sign in as a programme lead or reviewer' }, { status: 401, headers: cors })
+  }
 
   const key = Deno.env.get('KHAYA_API_KEY')
   if (!key) return Response.json({ error: 'KHAYA_API_KEY not set' }, { status: 500, headers: cors })
