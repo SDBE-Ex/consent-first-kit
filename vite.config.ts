@@ -21,6 +21,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,mp3}'],
+        // The in-browser translation engine is for leads on laptops; keep it out of the field app's offline cache.
+        globIgnores: ['**/localTranslate.worker*', '**/*.wasm', '**/ort*'],
         // Never cache API responses: answers must not linger in a browser cache.
         runtimeCaching: [],
       },

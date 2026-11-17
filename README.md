@@ -41,7 +41,10 @@ npm run dev
 4. For each line, get drafts from African-made engines (Khaya first), edit, and tick **approved by a native speaker**.
 5. **Publish**. The database refuses to publish until every line is approved. Published forms are frozen.
 
-Translation runs in the `translate-draft` Edge Function (secret `KHAYA_API_KEY`), only for signed-in leads and reviewers, and only on form text, never on answers.
+Draft engines (form text only, never answers):
+
+- **Khaya** (GhanaNLP, Ghana) via the `translate-draft` Edge Function (secret `KHAYA_API_KEY`), signed-in leads and reviewers only.
+- **Adelani m2m100** (Nigeria) runs in the lead's browser with Transformers.js. Convert it once with `notebooks/convert_adelani_model.ipynb` (free Colab), then set `VITE_LOCAL_YO_MODEL` in Vercel.
 
 ## Structure
 
