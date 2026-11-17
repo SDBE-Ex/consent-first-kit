@@ -32,22 +32,35 @@ npm run dev
 4. Database > Extensions: enable `pg_cron`, then run:
    `select cron.schedule('purge-expired', '0 2 * * *', 'select public.purge_expired()');`
 
+## Programme leads (build and publish forms)
+
+1. Open `/lead`, enter your email, click the sign-in link.
+2. An admin grants the lead role once, in the Supabase SQL editor:
+   `insert into answers.staff (user_id, role) select id, 'lead' from auth.users where email = 'you@example.org';`
+3. Start from a template, edit, then **Save and review Yoruba**.
+4. For each line, get drafts from African-made engines (Khaya first), edit, and tick **approved by a native speaker**.
+5. **Publish**. The database refuses to publish until every line is approved. Published forms are frozen.
+
+Translation runs in the `translate-draft` Edge Function (secret `KHAYA_API_KEY`), only for signed-in leads and reviewers, and only on form text, never on answers.
+
 ## Structure
 
 ```
 src/
   screens/FieldScreens.tsx   Journey B: health worker in the field (screens 4 to 9)
-  screens/SetupScreens.tsx   Journey A: programme lead setup (screens 1 to 3)
+  screens/LeadScreens.tsx    Journey A: sign-in, form builder, Yoruba review, publish
   lib/localStore.ts          encrypted offline storage, identity split
   lib/sync.ts                sync to server via narrow RPCs
   lib/i18n.ts                English + Yoruba (Yoruba pending native translator)
-supabase/migrations/         database schema and rules
+  lib/forms.ts               save/publish forms, translation drafts, register and tone-mark checks
+supabase/migrations/         database schema and rules (0001 data, 0002 forms and staff)
+supabase/functions/          translate-draft (Khaya translation + Yoruba speech)
 ```
 
 ## Not done yet
 
 - Yoruba strings and recorded consent audio (native translator and voice needed; no machine translation for consent)
-- Health worker sign-in (submit functions are open to anon for the prototype only)
+- Health worker sign-in (submit functions are open to anon for the prototype only; leads already sign in)
 - Journey C (check or change consent by SMS / USSD) and Journey D (council) beyond the database functions
 
 ## Licence
