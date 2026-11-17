@@ -34,3 +34,11 @@ legend { padding: 0 6px; font-weight: 600; text-transform: capitalize; }
 .q { display: flex; flex-direction: column; gap: 6px; }
 textarea, input { font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 10px; min-height: 48px; }
 .code { font-size: 32px; font-weight: 700; letter-spacing: 2px; text-align: center; padding: 16px; border: 2px dashed var(--accent); border-radius: 12px; }
+.qcard { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.qcard.approved { border-color: #2e7d32; background: #f3faf3; }
+.draft { border-left: 3px solid var(--accent); padding: 4px 10px; background: #f6f9fc; border-radius: 6px; }
+.warn { color: #8a4b00; font-size: 14px; }
+.check { display: flex; gap: 10px; align-items: center; font-size: 15px; }
+.check input { width: 22px; height: 22px; min-height: 0; }
+footer { text-align: center; font-size: 12px; color: var(--muted); padding: 24px 16px; }
+a { color: var(--accent); }
