@@ -6,6 +6,7 @@ import { templates } from '../lib/demoData'
 import {
   allLines, hasToneMarks, myForms, publishForm, registerFlag, saveForm, translateLine, type Draft,
 } from '../lib/forms'
+import { localDraft, localEngineEnabled } from '../lib/localTranslate'
 import { supabase } from '../lib/supabase'
 import type { Dataset, IdentityField, Line, Question } from '../types'
 
@@ -211,16 +212,22 @@ function ReviewInner() {
     setForm(f)
   }
 
+  // Both engines run side by side: Khaya on the server, Adelani's model in this browser.
   async function getDrafts(key: string, en: string) {
     setBusy(key)
-    try {
-      const r = await translateLine(en)
-      setDrafts((d) => ({ ...d, [key]: r.drafts }))
-    } catch (e) {
-      setMsg((e as Error).message)
-    } finally {
-      setBusy(null)
-    }
+    const show = (d: Draft) => setDrafts((all) => ({ ...all, [key]: [...(all[key] ?? []).filter((x) => x.engine !== d.engine), d] }))
+    setDrafts((all) => ({ ...all, [key]: [] }))
+    const server = translateLine(en)
+      .then((r) => r.drafts.forEach(show))
+      .catch((e) => show({ engine: 'khaya', madeIn: 'Ghana', text: null, error: (e as Error).message }))
+    const local = localEngineEnabled
+      ? localDraft(en, (pct) => setMsg(`Loading the Nigerian model on this device: ${pct}% (first time only)`)).then((d) => {
+          setMsg('')
+          show(d)
+        })
+      : Promise.resolve()
+    await Promise.all([server, local])
+    setBusy(null)
   }
 
   const approved = lines.filter((l) => l.line.yo_approved && l.line.yo).length
