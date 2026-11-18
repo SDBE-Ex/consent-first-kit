@@ -35,3 +35,19 @@ Repo copy of the decisions and tests behind the Consent-First Kit. The fuller pr
 **Not done.** Rate limit on `get_consent` / `update_consent`. A device token on the phone can be copied by someone with access to the unlocked browser profile; revocation is the answer.
 
 **Rollout.** Apply `0004` on Supabase and deploy the app at the same time. Until a phone is enrolled, its sync reports "not enrolled" and keeps its records.
+
+## 2026-11-18: Rate limits on the unauthenticated doors (migration 0005)
+
+**Problem.** Two functions can be called by anyone, because the credential is a code: `get_consent` / `update_consent` (a check code, 8 characters from 32 letters and digits) and `redeem_enrolment` (a one-time code). 0004 limited enrolment guesses globally (20 in 10 minutes), which one nuisance caller could use to stop every health worker enrolling. Consent lookups had no limit.
+
+**Decision.** Count failed attempts only, per client address, over 10 minutes: 10 allowed, then refused. A much higher global ceiling (300 lookups, 200 enrolments) still stops a spread-out attack. Successful lookups are never counted, so a person who mistypes once is not affected. Failures are returned, not raised, so the record is kept (an exception would roll it back). Events older than a day are deleted. App roles cannot read the table or call the helper functions.
+
+**Client address.** `cf-connecting-ip` if present, else the last `x-forwarded-for` entry (added by the nearest proxy; a caller cannot choose it), else the shared key `unknown`, which behaves like the global limit. **Not yet verified against live Supabase**: after applying, make one wrong lookup and read `answers.rate_events` to confirm the key is a real address and not `unknown`.
+
+**Test.** 15 checks on throwaway Postgres (PGlite): block after 10 wrong lookups, including with a right code and on `update_consent`; a different address is not blocked; right lookups are not counted; last `x-forwarded-for` entry wins over a spoofed first one; a real health worker can enrol while a guesser is blocked; the global ceiling works; old events are cleaned up; anon cannot read the table or call the helpers.
+
+**Still open.** 8-character check codes are guessable in principle (about 10^12 combinations); the limit makes online guessing impractical but longer codes would be stronger. A check code is also a credential the person holds, so it should not be shared in a group chat (tell people this when giving the code).
+
+## Idea under review (not built): using the kit with another form collector, such as Google Forms
+
+See the decision note in the thread of 2026-11-18. Short version: Google Forms would put people's answers outside the kit, which breaks principles 2, 4 and 5. A consent-only "gate" in front of an external form is possible as an adoption bridge, labelled honestly as ungoverned, and an ODK or KoboToolbox connector fits the original plan ("consent and governance layer"). Neither is built before the 17 December letter.

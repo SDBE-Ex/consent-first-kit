@@ -44,7 +44,7 @@ Key files:
 - `supabase/migrations/0001_init.sql`: data schemas (`answers`, `identity`), consent, submit/check/purge functions.
 - `supabase/migrations/0002_forms_and_staff.sql`: staff roles, form content, `save_form`, `publish_form` (requires every line `yo_approved`), `published_forms`, `my_forms`.
 - `src/screens/FieldScreens.tsx`: Journey B (health worker). `src/screens/LeadScreens.tsx`: Journey A (sign-in, builder, Yoruba review, publish).
-- `supabase/migrations/0003_idempotent_submit.sql`: submit functions safe to retry. `0004_device_enrolment.sql`: device enrolment (`create_enrolment`, `redeem_enrolment`, `my_devices`, `revoke_device`; token checked by `answers.require_device`). `src/lib/devices.ts`, `EnrolPhone` in `FieldScreens.tsx`, `PhonesPanel` in `LeadScreens.tsx`.
+- `supabase/migrations/0003_idempotent_submit.sql`: submit functions safe to retry. `0004_device_enrolment.sql`: device enrolment (`create_enrolment`, `redeem_enrolment`, `my_devices`, `revoke_device`; token checked by `answers.require_device`). `0005_rate_limits.sql`: per-address limits on `get_consent`, `update_consent` and `redeem_enrolment`. `src/lib/devices.ts`, `EnrolPhone` in `FieldScreens.tsx`, `PhonesPanel` in `LeadScreens.tsx`.
 - `src/lib/forms.ts`: form API, `registerFlag` (flags mixed casual/respectful "you"), `hasToneMarks`.
 
 ## Secrets and config (names only; never commit values)
@@ -73,7 +73,7 @@ Open, in priority order:
 1. Licence check with David Adelani for the published ONNX copy (base model has no licence tag; training data is non-commercial). The copy has **no cached decoding**, so `localTranslate.worker.ts` runs its own full-sequence greedy loop; do not switch back to `pipeline()`/`generate()` (returns empty drafts). A cached export would make drafts faster.
 2. Native speaker reviews the 13 lines of the "Community wellbeing check" draft; publish.
 3. Timed field test with 3 to 5 health workers (kit vs Google Forms). Real numbers feed the letter.
-4. ~~Health worker sign-in~~ Done in code (migration `0004_device_enrolment.sql`, built 18 Nov): a lead creates a one-time code, the phone trades it for a device token, and `submit_answers` / `submit_identity` require an enrolled, un-revoked phone. Apply 0004 on Supabase and deploy together. Still open: `get_consent` / `update_consent` (Journey C) have no rate limit.
+4. ~~Health worker sign-in~~ Done in code (migration `0004_device_enrolment.sql`, built 18 Nov): a lead creates a one-time code, the phone trades it for a device token, and `submit_answers` / `submit_identity` require an enrolled, un-revoked phone. Apply 0004 on Supabase and deploy together. Rate limits on consent lookups and enrolment are in `0005_rate_limits.sql` (per client address, failures only).
 5. Vulavula (Lelapa AI) as third draft engine; Journey C (SMS/USSD consent check); Journey D (council).
 
 ## Working conventions
