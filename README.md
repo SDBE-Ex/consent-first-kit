@@ -14,6 +14,8 @@ A health data collection kit for community health workers in Ibadan that stops m
 | Consent before the first question, three separate choices, AI training off by default | `src/screens/FieldScreens.tsx`, `answers.consents` |
 | Purpose and end date on every dataset; expired data purged | `answers.datasets`, `purge_expired()` |
 | No raw copies leave the kit | No export endpoints; app roles have no table access |
+| Only enrolled phones can send answers | `answers.devices`, `redeem_enrolment()`, `require_device()` (migration 0004) |
+| Guessing codes is slowed down | Per-address limits on consent lookups and enrolment (migration 0005) |
 | Works offline on cheap Android | PWA service worker, IndexedDB, AES-GCM on device |
 
 ## Run locally
@@ -27,8 +29,8 @@ npm run dev
 ## Set up the backend (Supabase)
 
 1. Create a free project at supabase.com.
-2. SQL Editor: run `supabase/migrations/0001_init.sql`.
-3. Project Settings > API: copy URL and anon key into `.env.local`.
+2. SQL Editor: run every file in `supabase/migrations/` in order (`0001` to `0005`). Each is safe to run once; `tests/sql/run.mjs` shows what each one guarantees.
+3. Project Settings > API: copy URL and publishable (anon) key into `.env.local`.
 4. Database > Extensions: enable `pg_cron`, then run:
    `select cron.schedule('purge-expired', '0 2 * * *', 'select public.purge_expired()');`
 
@@ -46,6 +48,25 @@ Draft engines (form text only, never answers):
 - **Khaya** (GhanaNLP, Ghana) via the `translate-draft` Edge Function (secret `KHAYA_API_KEY`), signed-in leads and reviewers only.
 - **Adelani m2m100** (Nigeria) runs in the lead's browser with Transformers.js. Convert it once with `notebooks/convert_adelani_model.ipynb` (free Colab), then set `VITE_LOCAL_YO_MODEL` in Vercel.
 
+## Health workers (collect in the field)
+
+1. A programme lead opens `/lead`, goes to **Health worker phones**, types who the phone belongs to and taps **Create a code**.
+2. The health worker opens the app on that phone, taps **Enrol this phone** and types the code once, with signal. It works once and expires after 24 hours.
+3. After that the phone collects with no signal at all. Answers are encrypted on the phone and sent when it next has signal.
+4. A lost phone: the lead removes it from the same panel, and it can send nothing further.
+
+No answer records which phone or health worker collected it.
+
+## Tests
+
+```bash
+npm run build      # typecheck and build
+npx oxlint src
+npm run test:sql   # database rules on a real Postgres engine (PGlite), every migration applied in order
+```
+
+The database is where the principles are enforced, so `test:sql` is the test that matters most.
+
 ## Structure
 
 ```
@@ -53,18 +74,24 @@ src/
   screens/FieldScreens.tsx   Journey B: health worker in the field (screens 4 to 9)
   screens/LeadScreens.tsx    Journey A: sign-in, form builder, Yoruba review, publish
   lib/localStore.ts          encrypted offline storage, identity split
-  lib/sync.ts                sync to server via narrow RPCs
+  lib/sync.ts                sync to server via narrow, retry-safe RPCs
+  lib/devices.ts             phone enrolment (codes, device list, remove a phone)
   lib/i18n.ts                English + Yoruba (Yoruba pending native translator)
   lib/forms.ts               save/publish forms, translation drafts, register and tone-mark checks
-supabase/migrations/         database schema and rules (0001 data, 0002 forms and staff)
+supabase/migrations/         database schema and rules (0001 data, 0002 forms and staff, 0003 retry-safe
+                             submit, 0004 phone enrolment, 0005 rate limits)
+tests/sql/                   database tests
+docs/                        build log and the timed field test protocol
 supabase/functions/          translate-draft (Khaya translation + Yoruba speech)
 ```
 
 ## Not done yet
 
 - Yoruba strings and recorded consent audio (native translator and voice needed; no machine translation for consent)
-- Health worker sign-in (submit functions are open to anon for the prototype only; leads already sign in)
 - Journey C (check or change consent by SMS / USSD) and Journey D (council) beyond the database functions
+- The timed field test against Google Forms, and the native speaker's review of the Yoruba lines (see `docs/`)
+- Per-address limits depend on Supabase passing the caller's address to the database; the fallback is a shared limit (see `docs/BUILD_LOG.md`)
+- Later: connectors to open collection tools such as ODK and KoboToolbox
 
 ## Licence
 
