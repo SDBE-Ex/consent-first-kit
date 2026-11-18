@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { sendMagicLink, signOut, useStaff } from '../lib/auth'
 import { templates } from '../lib/demoData'
+import { createEnrolment, listDevices, revokeDevice, type DeviceRow } from '../lib/devices'
 import {
   allLines, hasToneMarks, myForms, publishForm, registerFlag, saveForm, translateLine, type Draft,
 } from '../lib/forms'
@@ -65,8 +66,69 @@ function LeadHomeInner() {
       {templates.map((t) => (
         <button key={t.key} onClick={() => nav(`/lead/form/new?template=${t.key}`)}>{t.name}</button>
       ))}
+      <PhonesPanel />
       <button className="link" onClick={signOut}>Sign out</button>
     </main>
+  )
+}
+
+// ---------- Phones: enrol a health worker's phone, see them, remove a lost one ----------
+function PhonesPanel() {
+  const [devices, setDevices] = useState<DeviceRow[]>([])
+  const [label, setLabel] = useState('')
+  const [code, setCode] = useState<{ code: string; label: string } | null>(null)
+  const [err, setErr] = useState('')
+  const refresh = () => listDevices().then(setDevices).catch((e) => setErr(e.message))
+  useEffect(() => { listDevices().then(setDevices).catch((e) => setErr(e.message)) }, [])
+  async function enrol() {
+    setErr('')
+    try {
+      setCode({ code: await createEnrolment(label), label: label.trim() })
+      setLabel('')
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Could not create a code')
+    }
+  }
+  async function remove(d: DeviceRow) {
+    if (!window.confirm(`Remove "${d.label}"? It will not be able to send answers any more.`)) return
+    try {
+      await revokeDevice(d.id)
+      await refresh()
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Could not remove the phone')
+    }
+  }
+  return (
+    <section className="col">
+      <h2>Health worker phones</h2>
+      <p className="status">
+        Only enrolled phones can send answers. Give each health worker a one-time code and have them type it into
+        the app once, with signal.
+      </p>
+      <input placeholder="Whose phone is this?" value={label} maxLength={80} onChange={(e) => setLabel(e.target.value)} />
+      <button disabled={label.trim().length === 0} onClick={enrol}>Create a code</button>
+      {code && (
+        <div role="status">
+          <p>Code for {code.label}, valid for 24 hours, works once:</p>
+          <p className="code">{code.code}</p>
+          <p className="status">It is not shown again. Do not send it in a group chat.</p>
+        </div>
+      )}
+      {devices.map((d) => (
+        <div key={d.id} className="card">
+          <strong>{d.label}</strong>
+          <span>
+            {d.revoked_at
+              ? 'Removed'
+              : d.last_seen_at
+                ? `Last sent answers ${new Date(d.last_seen_at).toLocaleDateString()}`
+                : 'Enrolled, nothing sent yet'}
+          </span>
+          {!d.revoked_at && <button className="link" onClick={() => remove(d)}>Remove this phone</button>}
+        </div>
+      ))}
+      {err && <p className="status" role="alert">{err}</p>}
+    </section>
   )
 }
 

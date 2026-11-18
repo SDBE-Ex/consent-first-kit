@@ -15,3 +15,23 @@ Repo copy of the decisions and tests behind the Consent-First Kit. The fuller pr
 **Not changed.** The submit functions are still open to `anon` (prototype only). Health worker sign-in is the next item.
 
 **To apply on Supabase.** Run `supabase/migrations/0003_idempotent_submit.sql` in the SQL editor. Safe on existing data: a check code has one consent row, and 0001 inserted exactly one response with it.
+
+## 2026-11-18: Health worker phones are enrolled (migration 0004)
+
+**Problem.** `submit_answers` and `submit_identity` were open to any anonymous caller (prototype only), so anyone who found the project URL and publishable key could write rows.
+
+**Decision: enrol the phone, not the person.** Answers must be saved with no signal and no email account, so nothing at the moment of saving can depend on signing in. A programme lead enrols each phone once, online. Sync then proves the phone is enrolled. A lost phone is removed by the lead and can send nothing further. Considered and rejected: email magic-link login per health worker (needs email and signal on a cheap phone, and ties answers to a person).
+
+**How it works.**
+- Lead: "Health worker phones" panel creates a one-time code (12 hex characters, valid 24 hours, single use). Only the hash is stored.
+- Phone: types the code once, online. The server returns a random device token; only its hash is stored. The phone keeps the token encrypted.
+- `submit_answers` / `submit_identity` take the token and call `answers.require_device`, which refuses unknown or revoked tokens. The old signatures without a token are dropped, so no open door remains.
+- No answers row records which phone or health worker collected it (principle 2). The devices table holds only a label the lead typed and `last_seen_at`.
+- Code guessing: more than 20 wrong codes in 10 minutes pauses enrolment for everyone. Crude, and a nuisance attacker could block enrolment for a while. Revisit with per-IP limits at the edge before real use. A wrong code returns null instead of raising so the failure is recorded (an exception would roll the record back).
+- An un-enrolled phone can still collect (principle 7); answers stay encrypted on the phone and send once it is enrolled. If the server says the phone was removed, sync stops, keeps every record and says so.
+
+**Test.** 21 checks on throwaway Postgres (PGlite) with 0001 to 0004 applied: non-leads cannot create codes, list or revoke; the code is never stored; codes work once, expire and are not case or spacing sensitive; no token, wrong token and a revoked phone are refused; retries are still no-ops; old open signatures are gone; guessing is throttled; app roles cannot read the tables or call `require_device`.
+
+**Not done.** Rate limit on `get_consent` / `update_consent`. A device token on the phone can be copied by someone with access to the unlocked browser profile; revocation is the answer.
+
+**Rollout.** Apply `0004` on Supabase and deploy the app at the same time. Until a phone is enrolled, its sync reports "not enrolled" and keeps its records.

@@ -1,9 +1,10 @@
 // Journey B: health worker collects in the field (screens 4 to 9).
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { redeemEnrolment } from '../lib/devices'
 import { loadPublishedForms } from '../lib/forms'
 import { t } from '../lib/i18n'
-import { pendingCount, saveSubmission } from '../lib/localStore'
+import { getDeviceToken, pendingCount, saveSubmission, setDeviceToken } from '../lib/localStore'
 import { syncNow } from '../lib/sync'
 import { newCheckCode, useVisit } from '../session'
 import { say, type ConsentChoices, type Dataset, type IdentityField } from '../types'
@@ -15,7 +16,9 @@ export function FormsList() {
   const [count, setCount] = useState(0)
   const [forms, setForms] = useState<Dataset[]>([])
   const [source, setSource] = useState('')
+  const [enrolled, setEnrolled] = useState(true) // assume yes until checked, so the banner does not flash
   useEffect(() => {
+    getDeviceToken().then((tok) => setEnrolled(tok !== null))
     pendingCount().then(setCount)
     loadPublishedForms().then((r) => {
       setForms(r.forms)
@@ -28,6 +31,15 @@ export function FormsList() {
       <p className="status">
         {navigator.onLine ? 'Online' : 'Offline'} · {count} {t('en', 'pending')} · forms {source}
       </p>
+      {!enrolled && (
+        <div className="col" role="note">
+          <p className="status">
+            This phone is not enrolled yet. You can still collect: answers stay on this phone, encrypted, and are sent
+            once a programme lead enrols it.
+          </p>
+          <button onClick={() => nav('/field/enrol')}>Enrol this phone</button>
+        </div>
+      )}
       {forms.map((f) => (
         <button
           key={f.id}
@@ -44,6 +56,50 @@ export function FormsList() {
       ))}
       <button className="link" onClick={() => nav('/field/sync')}>Sync and storage</button>
       <button className="link" onClick={() => nav('/lead')}>Programme lead? Sign in</button>
+    </main>
+  )
+}
+
+// Enrol this phone: type the one-time code a programme lead gave you. Needs signal, once.
+export function EnrolPhone() {
+  const nav = useNavigate()
+  const [code, setCode] = useState('')
+  const [msg, setMsg] = useState('')
+  const [busy, setBusy] = useState(false)
+  async function run() {
+    setBusy(true)
+    setMsg('')
+    try {
+      const token = await redeemEnrolment(code)
+      if (!token) {
+        setMsg('That code is wrong, already used or expired. Ask your programme lead for a new one.')
+      } else {
+        await setDeviceToken(token)
+        nav('/field/sync')
+      }
+    } catch (e) {
+      setMsg(!navigator.onLine ? 'No signal. Enrolling needs a connection, once.' : e instanceof Error ? e.message : 'Could not enrol')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <main>
+      <h1>Enrol this phone</h1>
+      <p>Type the code your programme lead gave you. It works once and expires after 24 hours.</p>
+      <input
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        placeholder="XXXX-XXXX-XXXX"
+        autoCapitalize="characters"
+        autoComplete="off"
+        inputMode="text"
+      />
+      <button className="primary" disabled={busy || code.replace(/[^a-z0-9]/gi, '').length < 12} onClick={run}>
+        {busy ? 'Enrolling…' : 'Enrol'}
+      </button>
+      {msg && <p className="status" role="alert">{msg}</p>}
+      <button className="link" onClick={() => nav('/')}>Back</button>
     </main>
   )
 }

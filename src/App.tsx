@@ -4,6 +4,7 @@ import {
   ConsentChoicesScreen,
   Declined,
   Done,
+  EnrolPhone,
   FormsList,
   LanguageConsent,
   Questions,
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/field/questions" element={<Questions />} />
           <Route path="/field/done" element={<Done />} />
           <Route path="/field/sync" element={<SyncStatus />} />
+          <Route path="/field/enrol" element={<EnrolPhone />} />
           {/* Journey A: programme lead */}
           <Route path="/lead" element={<LeadHome />} />
           <Route path="/lead/form/:id" element={<FormEditor />} />

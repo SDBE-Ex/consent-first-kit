@@ -91,3 +91,20 @@ export async function clearSubmission(localId: string) {
 export async function pendingCount() {
   return (await db()).count('answers')
 }
+
+// The enrolment token that proves this phone was enrolled by a programme lead (migration 0004).
+// Kept encrypted like everything else here. A lost phone is revoked by the lead on the server.
+const TOKEN_KEY = 'enrol-token'
+
+export async function setDeviceToken(token: string) {
+  await (await db()).put('keys', await encrypt(token), TOKEN_KEY)
+}
+
+export async function getDeviceToken(): Promise<string | null> {
+  const rec = (await (await db()).get('keys', TOKEN_KEY)) as Encrypted | undefined
+  return rec ? decrypt<string>(rec) : null
+}
+
+export async function clearDeviceToken() {
+  await (await db()).delete('keys', TOKEN_KEY)
+}
