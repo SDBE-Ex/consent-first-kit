@@ -48,7 +48,7 @@ Key files:
 
 ## Secrets and config (names only; never commit values)
 
-- Vercel env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (publishable key), `VITE_LOCAL_YO_MODEL` (set once the Adelani ONNX copy is published).
+- Vercel env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (publishable key), `VITE_LOCAL_YO_MODEL` = `Philips101/m2m100_418M-eng-yor-mt-onnx`.
 - Supabase Edge Function secret: `KHAYA_API_KEY` (Khaya Developer plan, free, 100 calls/month).
 - Colab secret: `Hugging_face_key` (write token). Code reads it **by name**; never paste a token into a cell or chat.
 - Staff roles are granted in the Supabase SQL editor: `insert into answers.staff (user_id, role) select id, 'lead' from auth.users where email = '...';`
@@ -66,10 +66,10 @@ Test database rules against a throwaway Postgres 16 before running migrations on
 
 ## Status (18 Nov 2026)
 
-Done: field app live, sync verified in DB, lead sign-in + builder + Yoruba review + publish rules, Khaya live, Adelani converted and tested in Colab (not yet published), $0/month.
+Done: field app live, sync verified in DB, lead sign-in + builder + Yoruba review + publish rules, Khaya live, Adelani published as `Philips101/m2m100_418M-eng-yor-mt-onnx` and drafting in the browser, $0/month.
 
 Open, in priority order:
-1. Publish the Adelani ONNX copy to Hugging Face (needs licence check with David Adelani), set `VITE_LOCAL_YO_MODEL`, verify Transformers.js loads a decoder exported **without** cached decoding (copied as `decoder_model_merged_quantized.onnx`).
+1. Licence check with David Adelani for the published ONNX copy (base model has no licence tag; training data is non-commercial). The copy has **no cached decoding**, so `localTranslate.worker.ts` runs its own full-sequence greedy loop; do not switch back to `pipeline()`/`generate()` (returns empty drafts). A cached export would make drafts faster.
 2. Native speaker reviews the 13 lines of the "Community wellbeing check" draft; publish.
 3. Timed field test with 3 to 5 health workers (kit vs Google Forms). Real numbers feed the letter.
 4. Health worker sign-in (submit RPCs are open to `anon` for the prototype only).
