@@ -1,0 +1,9 @@
+health_worker_code,measure,detail,result,notes
+HW1,offline_collect_and_sync,records collected offline / records on server after sync,,
+HW1,consent_understood,care explained correctly (yes/no),,
+HW1,consent_understood,research explained correctly (yes/no),,
+HW1,consent_understood,ai_training explained correctly (yes/no),,
+HW1,would_switch,yes / only if / no,,
+HW1,current_tool_and_why,,,
+HW1,where_data_goes_after,,,
+HW1,phone_type,smartphone or basic phone and model,,
