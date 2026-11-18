@@ -192,7 +192,12 @@ export function SyncStatus() {
   }, [])
   async function run() {
     const r = await syncNow()
-    setMsg(r.skipped ?? `Synced ${r.synced}`)
+    setMsg(
+      r.skipped ??
+        (r.failed > 0
+          ? `Synced ${r.synced}. ${r.failed} could not be sent and stay on this phone, encrypted. Try again with a better signal.`
+          : `Synced ${r.synced}`),
+    )
     setCount(await pendingCount())
   }
   return (
