@@ -51,3 +51,7 @@ Repo copy of the decisions and tests behind the Consent-First Kit. The fuller pr
 ## Idea under review (not built): using the kit with another form collector, such as Google Forms
 
 See the decision note in the thread of 2026-11-18. Short version: Google Forms would put people's answers outside the kit, which breaks principles 2, 4 and 5. A consent-only "gate" in front of an external form is possible as an adoption bridge, labelled honestly as ungoverned, and an ODK or KoboToolbox connector fits the original plan ("consent and governance layer"). Neither is built before the 17 December letter. Decision (owner, 2026-11-18): leave it as a roadmap line, with the ODK/Kobo connector as the fellowship-year item.
+
+## 2026-11-18: Database tests kept in the repo, CI on every push
+
+The checks used while building 0003 to 0005 were throwaway scripts. They are now `tests/sql/run.mjs` (`npm run test:sql`, 50 checks, PGlite, every migration applied in order, plus the principles that must hold in every state: no foreign key from identity into answers, no identity-looking column in responses, purpose and end date required, anon has no direct table access). `.github/workflows/checks.yml` runs build, oxlint and test:sql on every push and pull request. First run passed. Rule going forward: every SQL change adds a check.

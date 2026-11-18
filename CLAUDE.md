@@ -61,9 +61,10 @@ npm install
 npm run dev        # local dev; works offline without Supabase env
 npm run build      # typecheck + build; must pass before pushing
 npx oxlint src
+npm run test:sql   # 50 database checks on PGlite, every migration in order; add a check for every SQL change
 ```
 
-Test database rules against a throwaway Postgres 16 before running migrations on Supabase (see build log for the stand-in `auth` schema used).
+Test database rules against a throwaway Postgres before running migrations on Supabase: `npm run test:sql` does this (PGlite, with stand-ins for Supabase's roles and `auth` schema). GitHub Actions runs build, oxlint and test:sql on every push. Apply migrations to the live project with `supabase db query --linked -f <file>` (project is linked locally; `supabase/.temp/` is untracked).
 
 ## Status (18 Nov 2026)
 
