@@ -16,6 +16,7 @@ A health data collection kit for community health workers in Ibadan that stops m
 | No raw copies leave the kit | No export endpoints; app roles have no table access |
 | Only enrolled phones can send answers | `answers.devices`, `redeem_enrolment()`, `require_device()` (migration 0004) |
 | Guessing codes is slowed down | Per-address limits on consent lookups and enrolment (migration 0005) |
+| The community decides new uses | Council votes, public decisions, append-only access log (migration 0006, `src/screens/CouncilScreens.tsx`) |
 | Works offline on cheap Android | PWA service worker, IndexedDB, AES-GCM on device |
 
 ## Run locally
@@ -88,7 +89,8 @@ supabase/functions/          translate-draft (Khaya translation + Yoruba speech)
 ## Not done yet
 
 - Yoruba strings and recorded consent audio (native translator and voice needed; no machine translation for consent)
-- Journey C (check or change consent by SMS / USSD) and Journey D (council) beyond the database functions
+- Journey C by SMS / USSD: the web screen `/consent` exists; the telecom gateway does not
+- Council: migration 0006 is not yet applied on Supabase and no council members exist; no release path for approved data
 - The timed field test against Google Forms, and the native speaker's review of the Yoruba lines (see `docs/`)
 - Per-address limits depend on Supabase passing the caller's address to the database; the fallback is a shared limit (see `docs/BUILD_LOG.md`)
 - Later: connectors to open collection tools such as ODK and KoboToolbox

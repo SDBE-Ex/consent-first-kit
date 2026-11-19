@@ -19,7 +19,7 @@ Every change must keep all seven. If a feature breaks one, the feature changes.
 3. **Consent before the first question.** Three separate choices: care, research, AI training. AI training defaults to **no**.
 4. **Every dataset has a purpose and an end date.** Expired data is deleted by a nightly job.
 5. **No raw copies leave the kit.** No export endpoints; app roles have no direct table access.
-6. **The community decides new uses** (council workflow, not built yet).
+6. **The community decides new uses.** Council workflow built (migration `0006_council.sql`, screens in `src/screens/CouncilScreens.tsx`): a lead files a request, a majority of the whole council (minimum 3 members) votes with written reasons, decisions are public at `/decisions`, everything is in an append-only access log. Approval only unlocks a **count** of consenting records; no release path exists (principle 5).
 7. **Works offline on cheap Android.**
 
 Hard rules:
@@ -75,7 +75,7 @@ Open, in priority order:
 2. Native speaker reviews the 13 lines of the "Community wellbeing check" draft; publish.
 3. Timed field test with 3 to 5 health workers (kit vs Google Forms). Real numbers feed the letter.
 4. ~~Health worker sign-in~~ Done in code (migration `0004_device_enrolment.sql`, built 18 Nov): a lead creates a one-time code, the phone trades it for a device token, and `submit_answers` / `submit_identity` require an enrolled, un-revoked phone. Apply 0004 on Supabase and deploy together. Rate limits on consent lookups and enrolment are in `0005_rate_limits.sql` (per client address, failures only).
-5. Vulavula (Lelapa AI) as third draft engine; Journey C (SMS/USSD consent check); Journey D (council).
+5. Vulavula (Lelapa AI) as third draft engine; Journey C (SMS/USSD consent check). Journey D (council) is built and tested in code (0006) but **not applied on Supabase**: apply it, then grant at least 3 people the `council` role (`insert into answers.staff (user_id, role) select id, 'council' from auth.users where email = '...';`).
 
 ## Working conventions
 

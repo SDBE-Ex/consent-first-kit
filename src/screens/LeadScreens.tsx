@@ -1,6 +1,6 @@
 // Journey A: programme lead signs in, builds a form from a template, reviews Yoruba line by line, publishes.
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { sendMagicLink, signOut, useStaff } from '../lib/auth'
 import { templates } from '../lib/demoData'
 import { createEnrolment, listDevices, revokeDevice, type DeviceRow } from '../lib/devices'
@@ -33,6 +33,7 @@ function Gate({ children }: { children: React.ReactNode }) {
         {err && <p className="status">{err}</p>}
       </main>
     )
+  if (role === 'council') return <Navigate to="/council" replace />
   if (role !== 'lead')
     return (
       <main>
@@ -67,6 +68,9 @@ function LeadHomeInner() {
         <button key={t.key} onClick={() => nav(`/lead/form/new?template=${t.key}`)}>{t.name}</button>
       ))}
       <PhonesPanel />
+      <h2>Requests to use the data</h2>
+      <p className="status">Someone asking to use a dataset? File their request here. The community council decides.</p>
+      <Link to="/council">Open council requests</Link>
       <button className="link" onClick={signOut}>Sign out</button>
     </main>
   )

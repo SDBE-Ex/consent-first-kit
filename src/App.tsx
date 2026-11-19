@@ -11,6 +11,8 @@ import {
   SyncStatus,
 } from './screens/FieldScreens'
 import { FormEditor, LeadHome, ReviewYoruba } from './screens/LeadScreens'
+import { CouncilHome, Decisions } from './screens/CouncilScreens'
+import { ConsentCheck } from './screens/ConsentCheck'
 import { SetupRedirect } from './screens/SetupScreens'
 
 export default function App() {
@@ -35,6 +37,11 @@ export default function App() {
           <Route path="/lead" element={<LeadHome />} />
           <Route path="/lead/form/:id" element={<FormEditor />} />
           <Route path="/lead/form/:id/review" element={<ReviewYoruba />} />
+          {/* Journey C: a person checks or changes their choices */}
+          <Route path="/consent" element={<ConsentCheck />} />
+          {/* Journey D: the community council */}
+          <Route path="/council" element={<CouncilHome />} />
+          <Route path="/decisions" element={<Decisions />} />
           <Route path="/setup/*" element={<SetupRedirect />} />
         </Routes>
         <footer>Yoruba drafts by African-made language AI · approved by native speakers</footer>

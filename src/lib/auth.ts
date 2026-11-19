@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 
-export type Role = 'lead' | 'reviewer' | 'worker' | null
+export type Role = 'lead' | 'reviewer' | 'worker' | 'council' | null
 
 /** Current session and staff role. Role comes from answers.staff, granted by an admin. */
 export function useStaff() {

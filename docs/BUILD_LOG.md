@@ -48,6 +48,30 @@ Repo copy of the decisions and tests behind the Consent-First Kit. The fuller pr
 
 **Still open.** 8-character check codes are guessable in principle (about 10^12 combinations); the limit makes online guessing impractical but longer codes would be stronger. A check code is also a credential the person holds, so it should not be shared in a group chat (tell people this when giving the code).
 
+## 2026-11-18: The council decides new uses (migration 0006, Journey D)
+
+**Problem.** Principle 6 was only a promise. 0001 had empty `use_requests` and `access_log` tables and nothing that could fill or decide them.
+
+**Decisions.**
+- **Separate roles.** `council` joins `lead`, `reviewer`, `worker`. A user has one role, so nobody can both file a request (lead) and decide it (council). Council members are granted in the SQL editor, like leads.
+- **A majority of the whole council decides, not of those who voted.** With 3 members, 2 decide. Fewer than 3 members: the database refuses every vote, so a one-person "council" cannot approve anything. Approve, approve with conditions and reject are the only votes; each needs a written reason, and conditions are required for a conditional vote. Votes and decided requests cannot be changed.
+- **Approval releases nothing.** It unlocks `eligible_records()`, a count of records whose owners agreed to that kind of use and have not withdrawn. Counts of 1 to 4 return null so a small number cannot point at a person. A real release path (aggregates, a view, a file) is a separate decision and is not built.
+- **Public decisions.** `public_decisions()` (anon can call it) lists who may use what, for what purpose and on which conditions. Vote reasons are shown to leads and council but never with who cast them.
+- **Append-only log.** Every filing, vote, decision and count view is written to `access_log`, which refuses updates and deletes. The log has no foreign key to requests, so it survives a dataset being purged. It holds ids, actions and counts only.
+- Considered and rejected: letting the requester file directly (a public door needing its own rate limit and abuse handling; a lead files on their behalf for now).
+
+**Bug the tests caught.** `eligible_records` first used `my_role() not in ('lead','council')`. A user with no role gives null, `null not in (...)` is null, and the guard did not fire, so a stranger could have asked for a count. Now `coalesce(my_role(), '')`. Watch for this shape in any role check.
+
+**Test.** 38 new checks (88 in all) on PGlite: roles, quorum and majority, rejection, conditions, no double votes, no edits, the count rules, what anon can and cannot see, the log, and a purge that leaves the log intact.
+
+**Not done.** Applying 0006 on Supabase and adding real council members (needs the owner). Council members have no way to be removed except the SQL editor. Votes are not deletable by a trigger because the foreign-key cascade on purge must work. A release path for approved data. Yoruba text on the council screens. Requesters filing for themselves.
+
+## 2026-11-18: Journey C web screen (`/consent`)
+
+**What.** A person types the check code they were given and sees their three choices, the dataset's purpose and its end date. They can change any choice. All three set to no withdraws the answers (the database already did this). No sign-in and no name. The code is accepted in lower case, with spaces, or without the dash (`normaliseCode`). Code: `src/lib/consentCheck.ts`, `src/screens/ConsentCheck.tsx`. No migration: it uses `get_consent` and `update_consent` from 0001 and the limits from 0005.
+
+**Not done.** SMS and USSD. That needs a telecom aggregator (Africa's Talking is the likely one), a number, a paid account and an Edge Function webhook, so it is the owner's decision first. A text-message link could open `/consent` today. The screen has no Yoruba text yet. The code is a credential: tell people not to share it.
+
 ## Idea under review (not built): using the kit with another form collector, such as Google Forms
 
 See the decision note in the thread of 2026-11-18. Short version: Google Forms would put people's answers outside the kit, which breaks principles 2, 4 and 5. A consent-only "gate" in front of an external form is possible as an adoption bridge, labelled honestly as ungoverned, and an ODK or KoboToolbox connector fits the original plan ("consent and governance layer"). Neither is built before the 17 December letter. Decision (owner, 2026-11-18): leave it as a roadmap line, with the ODK/Kobo connector as the fellowship-year item.
