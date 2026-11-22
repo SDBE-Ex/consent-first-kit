@@ -77,10 +77,15 @@ Open, in priority order:
 4. ~~Health worker sign-in~~ Done in code (migration `0004_device_enrolment.sql`, built 18 Nov): a lead creates a one-time code, the phone trades it for a device token, and `submit_answers` / `submit_identity` require an enrolled, un-revoked phone. Apply 0004 on Supabase and deploy together. Rate limits on consent lookups and enrolment are in `0005_rate_limits.sql` (per client address, failures only).
 5. Vulavula (Lelapa AI) as third draft engine; Journey C (SMS/USSD consent check). Journey D (council) is built and tested in code (0006) but **not applied on Supabase**: apply it, then grant at least 3 people the `council` role (`insert into answers.staff (user_id, role) select id, 'council' from auth.users where email = '...';`).
 
-## Working conventions
+## Live state (checked 22 Nov 2026)
+
+`npm run check:live` (read only) compares every migration with the live Supabase database. On 22 Nov 2026 all six migrations, 0001 to 0006, were fully live, so the "not applied" notes above about 0004 and 0006 are out of date. **The council has 0 members**: no new use can be decided until at least 3 people have signed in once and been granted the `council` role (the owner's step). Run `check:live` after applying any migration, and before calling anything done.
+
 
 - Explain the reasoning behind structural decisions; log each new decision in the build log.
 - Never fabricate numbers or stories in copy. Unconfirmed figures stay in [brackets].
 - In user-facing copy: no em dashes, plain direct language, Philips's own voice.
 - Prefer free and open, African-made tools first; global tools as fallback.
 - Commit messages: short, imperative. Keep `main` deployable; Vercel deploys every push.
+- Work on a branch and open a pull request; merge only when every check has **passed** (not merely finished). Stage every changed file (`git add -A`), then confirm `git status` is clean before pushing. Lessons from SDBE, 22 Nov 2026: a merge loop that waited without reading the result broke `main` once, and a hand-picked `git add` left a file out.
+- "Done" means verified against the live system (the site, the database via `check:live`), not only against tests.

@@ -8,13 +8,11 @@ export type Role = 'lead' | 'reviewer' | 'worker' | 'council' | null
 export function useStaff() {
   const [session, setSession] = useState<Session | null>(null)
   const [role, setRole] = useState<Role>(null)
-  const [loading, setLoading] = useState(true)
+  // With no Supabase configured there is nothing to load, so start ready instead of setting state inside the effect.
+  const [loading, setLoading] = useState(() => Boolean(supabase))
 
   useEffect(() => {
-    if (!supabase) {
-      setLoading(false)
-      return
-    }
+    if (!supabase) return
     const load = async (s: Session | null) => {
       setSession(s)
       if (s) {

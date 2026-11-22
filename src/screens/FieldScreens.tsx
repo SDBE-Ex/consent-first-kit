@@ -6,7 +6,8 @@ import { loadPublishedForms } from '../lib/forms'
 import { t } from '../lib/i18n'
 import { getDeviceToken, pendingCount, saveSubmission, setDeviceToken } from '../lib/localStore'
 import { syncNow } from '../lib/sync'
-import { newCheckCode, useVisit } from '../session'
+import { useVisit } from '../session'
+import { newCheckCode } from '../lib/checkCode'
 import { say, type ConsentChoices, type Dataset, type IdentityField } from '../types'
 
 // Screen 4: published forms (kept on the phone for offline use) + offline status
